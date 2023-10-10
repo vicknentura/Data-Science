@@ -1,0 +1,28 @@
+#Step 1: Save the webpage of interest as HTML only onto your desktop
+
+#Step 2: Open the webpage in Google Analytics Portal.txt file from the desktop
+
+#Step 3: Add this tag for Google Analytics measurement ID and Tag Manager
+#Note the INSERT MEASUREMENT ID" prompt specific to the data stream of interest
+
+<!-- 0007 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=MEASUREMENT ID"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'INSERT MEASUREMENT ID');
+</script>
+
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5D36XM5');</script>
+
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5D36XM5"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- 0007 -->
+
+#Step 6: Save changes to the text file.

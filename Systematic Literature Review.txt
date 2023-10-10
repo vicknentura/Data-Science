@@ -1,0 +1,43 @@
+# The packages we need include csv to write to a csv file, re in order to use regular expressions to extract information from esearch results, urllib to open and read urls, and time in order to sleep for a couple seconds between requests so we don't get blocked.
+import csv
+import re
+import urllib
+from time import sleep
+
+
+#specify our parameters for the esearch and efetch calls. We can store each of the settings in their own individual variables in order to make it easy to customize the calls in the future.
+query = 'mysathenia gravis'
+
+# common settings between esearch and efetch
+base_url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
+db = 'db=pubmed'
+
+
+# esearch specific settings
+search_eutil = 'esearch.fcgi?'
+search_term = '&term=' + query
+search_usehistory = '&usehistory=y'
+search_rettype = '&rettype=json'
+
+search_url = base_url+search_eutil+db+search_term+search_usehistory+search_rettype
+print(search_url)
+
+
+#Now that we have the full esearch url constructed, we can open the url using urllib.request.urlopen() as raw text
+f = urllib.request.urlopen(search_url)
+search_data = f.read().decode('utf-8')
+search_data
+
+
+# obtain total abstract count
+total_abstract_count = int(re.findall("<Count>(\d+?)</Count>",search_data)[0])
+
+# obtain webenv and querykey settings for efetch command
+fetch_webenv = "&WebEnv=" + re.findall ("<WebEnv>(\S+)<\/WebEnv>", search_data)[0]
+fetch_querykey = "&query_key=" + re.findall("<QueryKey>(\d+?)</QueryKey>",search_data)[0]
+
+total_abstract_count
+
+fetch_webenv
+
+fetch_querykey

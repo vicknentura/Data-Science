@@ -1,0 +1,20 @@
+#Google Analytics
+
+#Google Tag Manager
+
+GTag Manager Domain = GTM-5D36XM5
+
+Study 1 (Consumer Goods)
+Alibaba.com = G-BJP0EMDHZT
+Amazon.com = G-WMVQQVQCGC
+Target.com = G-MW894WHC8V
+Walmart.com = G-YTWD4JP2DF
+
+Study 2 (Property Listings)
+Redfin.com = G-LS1ZDRD1FK
+Realtor.com = G-SETJE5J7CL
+Zillow.com = G-WNFCPKM5R0
+Trulia.com = G-SQNY6PBE41
+
+#Tag Assistant Extension on Google Chrome
+Debugger potentially for user experience testing; connection is finicky
