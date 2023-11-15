@@ -1,0 +1,57 @@
+#initialize
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from lifelines import KaplanMeierFitter, CoxPHFitter
+from lifelines.plotting import plot_lifetimes
+%matplotlib inline
+
+#load data
+data = pd.read_csv("/kaggle/input/heart-failure-clinical-data/heart_failure_clinical_records_dataset.csv"
+# check datatype and column dtypes, non-null values.
+data.info()
+# check for missing values 
+data.isnull().sum()
+
+#correlation matrix
+import seaborn as sns
+corr = data.corr().sort_values(ascending=False, key=lambda x: abs(x), by="DEATH_EVENT")
+ax = sns.heatmap(corr, vmin=-1, vmax=1, center=0, cmap=sns.diverging_palette(20, 220, n=200), square=True,)
+ax.set_xticklabels(ax.get_xticklabels(), rotation=45, horizontalalignment='right')
+ax.set_title("Heart Failure Survival Heatmap")
+
+#Plot KM Curve
+kmf = KaplanMeierFitter()
+kmf.fit(data.time, data.DEATH_EVENT, label = 'Kaplan Meier Estimate, full sample')
+kmf.plot(linewidth=4, figsize=(12, 6))
+plt.title('Heart Failure Survival: Kaplan-Meier Curve')
+plt.xlabel('Tenure (Months)')
+plt.ylabel('Survival probability')
+
+kmf.survival_function_
+
+df1 = data[data.anaemia==1]
+df2 = data[data.anaemia==0]
+kmf.fit(df1.time, df1.DEATH_EVENT)
+kmf.plot(label='With Anaemia', figsize=(12, 6))
+kmf.fit(df2.time, df2.DEATH_EVENT)
+kmf.plot(label='Without Anaemia')
+plt.title('Anaemia and Death: Kaplan-Meier Curve')
+plt.xlabel('Months')
+plt.ylabel('Survival probability')
+
+# Using Cox Proportional Hazards Model
+cph = CoxPHFitter()
+cph.fit(data, duration_col='time', event_col='DEATH_EVENT')
+
+cph.plot()
+
+cph.print_summary(columns=["coef","exp(coef)","exp(coef) lower 95%","exp(coef) upper 95%", "z", "p"], decimals=3)
+
+
+
+#https://medium.com/@boyangchen02/time-series-survival-analysis-implementation-in-python-f31c43b3099d
+
+
+
