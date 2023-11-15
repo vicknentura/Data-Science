@@ -1,0 +1,64 @@
+
+
+ Loading a Sample Pandas DataFrame
+import pandas as pd
+df = pd.DataFrame.from_dict({
+    'Student': ['Nik', 'Kate', 'Kevin', 'Evan', 'Jane', 'Kyra', 'Melissa'],
+    'English': [90, 95, 75, 93, 60, 85, 75],
+    'Chemistry': [95, 95, 75, 65, 50, 85, 100],
+    'Math': [100, 95, 50, 75, 90, 50, 80]
+}).set_index('Student')
+print(df)
+
+# Returns:
+#          English  Chemistry  Math
+# Student                          
+# Nik           90         95   100
+# Kate          95         95    95
+# Kevin         75         75    50
+# Evan          93         65    75
+# Jane          60         50    90
+# Kyra          85         85    50
+# Melissa       75        100    80
+
+# Calculating Percentiles of a Column
+print(df['English'].quantile([0.25, 0.75]))
+
+# Returns:
+# 0.25    75.0
+# 0.75    91.5
+# Name: English, dtype: float64
+
+# Calculating the IQR of a Pandas Column
+quartiles = df['English'].quantile([0.25, 0.75])
+iqr = quartiles[0.75] - quartiles[0.25]
+print(iqr)
+
+# Returns: 16.5
+
+# Calculating the IQR for a DataFrame
+Q1 = df.quantile(0.25)
+Q3 = df.quantile(0.75)
+IQR = Q3 - Q1
+
+print(IQR)
+
+# Returns:
+# English      16.5
+# Chemistry    25.0
+# Math         30.0
+# dtype: float64
+
+# Creating a Boxplot in Python
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = df.reset_index().melt(
+    id_vars='Student',
+    var_name='Class',
+    value_name='Grade'
+)
+sns.boxplot(data=df, x='Class', y='Grade')
+plt.show()
+
+#https://datagy.io/pandas-iqr/
