@@ -1,0 +1,82 @@
+#Probabilistic sensitivity analysis
+#https://towardsdatascience.com/log-normal-distribution-a-simple-explanation-7605864fb67c
+
+set.seed(131)
+n_samples <- 1000
+
+# cost
+c <- vector(mode = "list", length = 6)
+names(c) <- c("Strategy 1, Grp 1", "Strategy 1, Grp 2", "Strategy 2, Grp 1",
+              "Strategy 2, Grp 2", "Strategy 3, Grp 1", "Strategy 3, Grp 2")
+c[[1]] <- rlnorm(n_samples, 2, .1)
+c[[2]] <- rlnorm(n_samples, 2, .1)
+c[[3]] <- rlnorm(n_samples, 11, .15)
+c[[4]] <- rlnorm(n_samples, 11, .15)
+c[[5]] <- rlnorm(n_samples, 11, .15)
+c[[6]] <- rlnorm(n_samples, 11, .15)
+
+# effectiveness
+e <- c
+e[[1]] <- rnorm(n_samples, 8, .2)
+e[[2]] <- rnorm(n_samples, 8, .2)
+e[[3]] <- rnorm(n_samples, 10, .8)
+e[[4]] <- rnorm(n_samples, 10.5, .8)
+e[[5]] <- rnorm(n_samples, 8.5, .6)
+e[[6]] <- rnorm(n_samples, 11, .6)
+
+# cost and effectiveness by strategy and simulation
+library("data.table")
+ce <- data.table(sample = rep(seq(n_samples), length(e)),
+                 strategy = rep(paste0("Strategy ", seq(1, 3)), 
+                                each = n_samples * 2),
+                 grp = rep(rep(c("Group 1", "Group 2"),
+                               each = n_samples), 3),
+                 cost = do.call("c", c), qalys = do.call("c", e))
+head(ce)
+
+
+#Decision analysis
+library("hesim")
+ktop <- 200000
+cea_out <-  cea(ce, k = seq(0, ktop, 500), sample = "sample", strategy = "strategy",
+                grp = "grp", e = "qalys", c = "cost")
+
+cea_pw_out <-  cea_pw(ce,  k = seq(0, ktop, 500), comparator = "Strategy 1",
+                      sample = "sample", strategy = "strategy", grp = "grp",
+                       e = "qalys", c = "cost")
+
+
+#Incremental cost-effectiveness ratio (ICER)
+library("magrittr") # Use pipes
+icer(cea_pw_out, k = 50000) %>%
+  format()
+
+
+#Cost-effectiveness Plane
+head(cea_pw_out$delta)
+
+library("ggplot2")
+theme_set(theme_bw())
+plot_ceplane(cea_pw_out, k = 50000)
+
+
+#Cost-effectiveness acceptability curves (CEAC)
+ce <- ce[, nmb := 50000 * qalys - cost]
+random_rows <- sample(1:n_samples, 10)
+nmb <- dcast(ce[sample %in% random_rows & grp == "Group 2"], 
+                sample ~ strategy, value.var = "nmb")
+setnames(nmb, colnames(nmb), c("sample", "nmb1", "nmb2", "nmb3"))
+nmb <- nmb[, maxj := apply(nmb[, .(nmb1, nmb2, nmb3)], 1, which.max)]
+nmb <- nmb[, maxj := factor(maxj, levels = c(1, 2, 3))]
+
+mce <- prop.table(table(nmb$maxj))
+print(mce)
+
+plot_ceac(cea_out)
+
+plot_ceac(cea_pw_out)
+
+
+#Cost-effectiveness acceptability frontier (CEAF)
+plot_ceaf(cea_out)
+

@@ -1,0 +1,89 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Define the dataset
+interventions = ['Intervention1', 'Intervention2', 'Intervention3', 'Intervention4', 'Intervention5']
+costs = [100, 150, 200, 250, 300]
+effects = [0.8, 0.9, 1.0, 1.1, 1.2]
+
+# Calculate the incremental cost-effectiveness ratio (ICER)
+ICERs = []
+for i in range(len(interventions)-1):
+    ICER = (costs[i+1] - costs[i]) / (effects[i+1] - effects[i])
+    ICERs.append(ICER)
+
+# Create a cost-effectiveness plane
+plt.scatter(effects, costs)
+plt.xlabel('Effectiveness')
+plt.ylabel('Cost')
+plt.title('Cost-Effectiveness Plane')
+for i in range(len(interventions)):
+    plt.annotate(interventions[i], (effects[i], costs[i]))
+
+# Calculate the net monetary benefit (NMB)
+WTP = np.linspace(0, 1000, 101)
+NMBs = []
+for i in range(len(interventions)):
+    NMB = effects[i] * WTP - costs[i]
+    NMBs.append(NMB)
+
+# Plot the cost-effectiveness acceptability curve (CEAC)
+CEAC = []
+for wtp in WTP:
+    num = sum([1 for i in range(len(interventions)) if NMBs[i] >= wtp])
+    prob = num / len(interventions)
+    CEAC.append(prob)
+
+plt.figure()
+plt.plot(WTP, CEAC)
+plt.xlabel('Willingness-to-Pay')
+plt.ylabel('Probability of Cost-Effectiveness')
+plt.title('Cost-Effectiveness Acceptability Curve')
+
+
+#https://www.pharmdinfo.com/pharma-research-f6/mastering-cea-analysis-with-python-hands-on-tutorial-with-model-case-and-data-t3907.html
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Define the dataset
+interventions = ['Intervention1', 'Intervention2', 'Intervention3', 'Intervention4', 'Intervention5']
+costs = [100, 150, 200, 250, 300]
+effects = [0.8, 0.9, 1.0, 1.1, 1.2]
+
+# Calculate the incremental cost-effectiveness ratio (ICER)
+ICERs = []
+for i in range(len(interventions)-1):
+    ICER = (costs[i+1] - costs[i]) / (effects[i+1] - effects[i])
+    ICERs.append(ICER)
+
+# Create a cost-effectiveness plane
+plt.scatter(effects, costs)
+plt.xlabel('Effectiveness')
+plt.ylabel('Cost')
+plt.title('Cost-Effectiveness Plane')
+for i in range(len(interventions)):
+    plt.annotate(interventions[i], (effects[i], costs[i]))
+
+# Calculate the net monetary benefit (NMB)
+WTP = np.linspace(0, 1000, 101)
+NMBs = []
+for i in range(len(interventions)):
+    NMB = effects[i] * WTP - costs[i]
+    NMBs.append(NMB)
+
+# Plot the cost-effectiveness acceptability curve (CEAC)
+CEAC = []
+for wtp in WTP:
+    num = sum([1 for i in range(len(interventions)) if NMBs[i] >= wtp])
+    prob = num / len(interventions)
+    CEAC.append(prob)
+
+plt.figure()
+plt.plot(WTP, CEAC)
+plt.xlabel('Willingness-to-Pay')
+plt.ylabel('Probability of Cost-Effectiveness')
+plt.title('Cost-Effectiveness Acceptability Curve')
+
+# Show the plots
+plt.show()
