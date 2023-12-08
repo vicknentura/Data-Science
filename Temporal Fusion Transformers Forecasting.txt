@@ -1,0 +1,147 @@
+$ pip install pytorch-forecasting
+
+
+#look at data
+DATAPATH = Path("./tabular-playground-series-sep-2022/")
+
+train_df = pd.read_csv(DATAPATH / "train.csv")
+train_df['date']  = pd.to_datetime(train_df['date'])
+test_df = pd.read_csv(DATAPATH / "test.csv")
+test_df['date']  = pd.to_datetime(test_df['date'])
+
+
+#plot
+fig, ax = plt.subplots(1, 1, figsize = (23, 8))
+sns.lineplot(x='date', y='num_sold', hue='product', data=(train_df.groupby(['date', 'product']).num_sold.sum().to_frame()))
+ax.set_title("sum of num_sold per product ")
+
+
+# Add a year column
+train_df_processed["year"]=train_df_processed.index.year
+
+
+# Get average sales for each country in each year
+mean_country_year = train_df_processed[['country', 'year', "num_sold"]].groupby(['country', 'year'], as_index=False).mean()
+
+
+# Shift the mean of 2017~2019 sales data w.r.t. 2020
+for country in train_df_processed.country.unique():
+    mean_2020 = mean_country_year.loc[(mean_country_year['year'] == 2020) & (mean_country_year['country'] == country), 'num_sold'].values[0]
+
+    for year in train_df_processed.year.unique():
+        if year==2020:
+            break
+        mean_year = mean_country_year.loc[(mean_country_year['year'] == year) & (mean_country_year['country'] == country), 'num_sold'].values[0]
+        factor = mean_2020/mean_year
+        train_df_processed.loc[(train_df_processed["country"]==country) & (train_df_processed["year"]==year),"num_sold"]= train_df_processed.loc[(train_df_processed["country"]==country) & (train_df_processed["year"]==year),"num_sold"]*factor
+
+
+# handle 01-01-2020 outlier
+train_df_processed.loc[pd.Timestamp('2020-01-01'), "num_sold"]=np.nan
+
+df_shifted = pd.concat(
+        [train_df_processed[["num_sold"]].shift(periods=365*48*x) for x in range(3)], axis=1
+    )
+train_df_processed[["num_sold"]] = train_df_processed[["num_sold"]].fillna(df_shifted.groupby(by=df_shifted.columns, axis=1).mean())
+
+
+# handle March~May lockdown outliers
+train_df_processed.loc[(train_df_processed.year==2020)&(train_df_processed.index.month.isin([3,4,5])), "num_sold"]=np.nan
+
+df_shifted = pd.concat(
+        [train_df_processed[["num_sold"]].shift(periods=52*7*48*x) for x in range(3)], axis=1
+    )
+train_df_processed[["num_sold"]] = train_df_processed[["num_sold"]].fillna(df_shifted.groupby(by=df_shifted.columns, axis=1).mean())
+
+
+#Inferring next year
+# add calendar features
+test = add_cyclical_calendar_features(test_df.set_index("date"), features=["weekday", "week"])
+test["weekend"] = (test.index.dayofweek > 4).astype(int)
+
+# add holidays flag
+holidays_dates_per_country = {}
+for country in test["country"].unique():
+    holidays_dates_per_country[country]=[tuple[0] for tuple in list(getattr(holidays, country)(years=set(test.index.year)).items())]
+    test.loc[test["country"]==country, "holidays"]=test.loc[test["country"]==country].index.isin(holidays_dates_per_country[country])
+
+test["holidays"] = test["holidays"].astype(int)
+
+# add end-of-year holidays flag
+test["newyear"]=0
+for day in range(25,32):
+    test.loc[(test.index.month == 12) & (test.index.day == day),"newyear"]=1
+
+# Add required time_idx column w.r.t to last time index of training df
+test = test.reset_index()
+test = (test.merge((test[['date']].drop_duplicates(ignore_index=True).rename_axis('time_idx')).reset_index(), on = ['date']))
+test["time_idx"]+=train["time_idx"].max()+1
+
+# Drop unused columns
+test = test.drop(["date", "row_id"], axis=1)
+
+# Vertically stack the test df at the end of the training df
+test = pd.concat([train, test], ignore_index=True).fillna(0.0)
+
+
+# Create test dataset
+test_dataset = TimeSeriesDataSet.from_dataset(training_dataset,
+                                        test, 
+                                        predict=True, 
+                                        stop_randomization=True)
+
+# Create test dataloader
+test_dataloader = test_dataset.to_dataloader(train=False, batch_size=batch_size, num_workers=8)
+
+# Get prediction results
+test_prediction_results = best_tft.predict(
+    test_dataloader,
+    mode="raw",
+    return_index=True, # return the prediction index in the same order as the output
+    return_x=True, # return network inputs in the same order as prediction output
+    )
+
+
+# Create predictions dataframe
+predictions_df = test_df.copy()
+# Add num_sold column
+predictions_df["num_sold"]=np.nan
+
+# get 0.5 quantile (median) predictions
+median_predictions = test_prediction_results.output.prediction.cpu().numpy()[:,:,4] 
+
+# add sales predictions w.r.t to groups combination
+for i, row in test_prediction_results.index.iterrows():
+    predictions_df.loc[
+        (predictions_df["country"]==row["country"]) & 
+        (predictions_df["store"]==row["store"]) & 
+        (predictions_df["product"]==row["product"]), 
+        "num_sold"] = median_predictions[i]
+
+
+#Interpretatability
+# plot variable importance
+interpretation = best_tft.interpret_output(
+  val_predictions, 
+  reduction="sum", # sum attentions
+)
+best_tft.plot_interpretation(interpretation)
+
+
+val_prediction_results = best_tft.predict(
+    val_dataloader, 
+    mode="prediction", # get only median predictions
+    return_x=True,
+    )
+predictions_vs_actuals = best_tft.calculate_prediction_actual_by_variable(val_prediction_results.x, val_prediction_results.output)
+
+# remove added lagged features
+features = list(set(predictions_vs_actuals['support'].keys())-set(['num_sold_lagged_by_365', 'num_sold_lagged_by_7']))
+
+# plot cross_plots
+for feature in features:
+    best_tft.plot_prediction_actual_by_variable(predictions_vs_actuals, name=feature);
+
+#https://medium.com/@mouna.labiadh/forecasting-book-sales-with-temporal-fusion-transformer-dd482a7a257c
+#https://pytorch-forecasting.readthedocs.io/en/stable/tutorials/stallion.html
+#https://arxiv.org/abs/1912.09363
