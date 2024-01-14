@@ -1,0 +1,27 @@
+#Correlation analysis first
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.signal import correlate
+
+#Load in data and separate into two series
+np.random.seed(0) #random example REPLACE
+time = np.arange(0, 100, 1) #random example REPLACE
+series1 = np.random.normal(0, 1, len(time))
+series2 = np.random.normal(0, 1, len(time))
+
+#correlo
+correlation = np.zeros(len(time))
+for i in range(len(time)):
+    correlation[i] = correlate(series1[:i+1], series2[:i+1], method='direct')[-1] / (np.std(series1[:i+1]) * np.std(series2[:i+1])) #May need to be replaced with stats formula
+
+#Plot
+plt.figure(figsize=(12, 6))
+plt.plot(time, correlation)
+plt.xlabel('Time')
+plt.ylabel('Correlation Coefficient')
+plt.title('Time Series of Correlation Analysis')
+plt.grid()
+plt.show()
+
+#Limitations with tabulate in python
