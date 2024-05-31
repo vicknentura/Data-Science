@@ -1,0 +1,200 @@
+#initializing
+import pandas as pd
+
+df = pd.read_csv("/datasets/letters_colors_decimals.csv", sep="$", decimal="a", sheet_name='reviewers')
+
+# Group the DataFrame by the 'product_id' column and find the mean of the 'review' column for each group
+avg_reviews = df_reviews.groupby('product_id')['review'].mean()
+
+print(df)
+
+
+#Missing values
+There are many ways to find and count missing values in pandas. You learned three ways in this lesson:
+
+Calling info() on a DataFrame
+Calling isna().sum() on a DataFrame or Series
+Calling value_counts(dropna=False) on a Series
+
+
+#
+import pandas as pd
+
+df_logs = pd.read_csv('/datasets/visit_log.csv', keep_default_na=False)
+df_logs['source'] = df_logs['source'].replace('', 'email')
+
+# write your code here
+purchases = df_logs.groupby('source')['purchase'].sum()
+print(purchases)
+
+
+#
+import pandas as pd
+
+analytics_data = pd.read_csv('/datasets/web_analytics_data.csv')
+
+age_avg = analytics_data['age'].mean()
+analytics_data['age'] = analytics_data['age'].fillna(age_avg)
+
+desktop_data = analytics_data[analytics_data['device_type'] == 'desktop']
+mobile_data = analytics_data[analytics_data['device_type'] == 'mobile']
+
+desktop_data.info()
+print()
+mobile_data.info()
+
+
+#
+import pandas as pd
+
+df_stock = pd.read_csv('/datasets/phone_stock.csv')
+df_stock['item_lowercase'] = df_stock['item'].str.lower()
+
+apple = df_stock[df_stock['item_lowercase'].str.contains('apple')]['count'].sum()
+samsung = df_stock[df_stock['item_lowercase'].str.contains('samsung')]['count'].sum()
+
+print("Total number of Apple phones:", apple)
+print("Total number of Samsung phones:", samsung)
+
+
+#plottign
+plt.plot(df['c'], df['a'], title='A vs C', style='*', color='hotpink', xlim=(0, 12), ylim=(1, 6), figsize=(5, 5), xlabel='C', ylabel='A')
+plt.show()
+
+
+
+#
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('/datasets/height_weight.csv')
+
+df.plot(x='age',
+        y='height',
+        kind='scatter',
+        alpha=0.36,
+        figure=[8, 6],
+        title='Adult heights',
+        xlabel='Age / years',
+        ylabel='Height / inches')
+
+plt.show()
+
+
+#
+import pandas as pd
+from matplotlib import pyplot as plt
+
+df = pd.read_csv('/datasets/height_weight.csv')
+
+# Filter the dataframe based on age
+df_20s = df[df['age'] < 30]
+df_30s = df[(df['age'] >= 30) & (df['age'] < 40)]
+df_40s = df[df['age'] >= 40]
+
+# Print the sum of the lengths of the three dataframes
+print("Sum of data frame lengths:", len(df_20s) + len(df_30s) + len(df_40s))
+
+# Print the min and max value in the 'age' column of df_20s
+print("Min and max age for df_20s:", df_20s['age'].min(), df_20s['age'].max())
+
+# Print the min and max value in the 'age' column of df_30s
+print("Min and max age for df_30s:", df_30s['age'].min(), df_30s['age'].max())
+
+# Print the min and max value in the 'age' column of df_40s
+print("Min and max age for df_40s:", df_40s['age'].min(), df_40s['age'].max())
+
+
+#
+import pandas as pd
+from matplotlib import pyplot as plt
+
+df = pd.read_csv('/datasets/height_weight.csv')
+
+df_20s = df[df['age'] < 30]
+df_30s = df[(df['age'] >= 30) & (df['age'] < 40)]
+df_40s = df[df['age'] >= 40]
+
+df_20s['weight'].plot(kind='hist',
+                      bins=20,
+                      title='Weight / lbs',
+                      ylabel='Frequency')
+
+df_30s['weight'].plot(kind='hist', bins=20, alpha=0.6)
+df_40s['weight'].plot(kind='hist', bins=20, alpha=0.3)
+
+
+plt.legend(['20s', '30s', '40s'])
+plt.show()
+
+
+
+#Cumulative Filtering
+((df['critic_score'] >= 90) | (df['user_score'] >= 9)) & (df['genre'].isin(['Role-Playing', 'Strategy', 'Puzzle']))
+
+
+
+#Cumulative Filtering with df.query()
+import pandas as pd
+
+df = pd.read_csv('/datasets/vg_sales.csv')
+df['user_score'] = pd.to_numeric(df['user_score'], errors='coerce')
+
+# Define the query string
+q_string = 'na_sales >= 1 or eu_sales >= 1 or jp_sales >= 1'
+
+# Use the query string to filter the dataframe
+df_filtered = df.query(q_string)
+
+# Print the first 5 rows of the filtered dataframe
+print(df_filtered.head())
+
+
+
+#EXample
+import pandas as pd
+
+# Assuming developers is a list of companies
+developers = [...]
+
+# Assuming df is the original DataFrame
+# ...
+
+# Filter rows where sales in all three regions are greater than 0
+df_filtered = df[(df['na_sales'] > 0) & (df['eu_sales'] > 0) & (df['jp_sales'] > 0)]
+
+# Filter rows where Japanese sales are greater than combined sales from North America and Europe
+df_filtered = df_filtered[df_filtered['jp_sales'] > (df_filtered['na_sales'] + df_filtered['eu_sales'])]
+
+# Filter rows where developer is one of the companies in the developers list
+df_filtered = df_filtered[df_filtered['developer'].isin(developers)]
+
+# Select only the 'name', 'developer', 'na_sales', 'eu_sales', and 'jp_sales' columns
+df_filtered = df_filtered[['name', 'developer', 'na_sales', 'eu_sales', 'jp_sales']]
+
+# Print the filtered DataFrame
+print(df_filtered)
+
+
+#Filter by a colname, then sort
+print(df['genre'].value_counts(sort=False, ascending=True))
+
+
+
+df.where(cond, other)
+df.where(~df.isin(['Puzzle'], 'Strategy']), 'Misc')
+df.query(expr)
+
+
+
+#Pivot Tables
+import pandas as pd
+
+df = pd.read_csv('/datasets/vg_sales.csv')
+df = df[df['year_of_release'] >= 2000]
+
+df['user_score'] = pd.to_numeric(df['user_score'], errors='coerce')
+
+# Improved code
+df_pivot = df.pivot_table(index='genre', columns='year_of_release', values='user_score', aggfunc='mean')
+print(df_pivot)

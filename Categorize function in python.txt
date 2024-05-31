@@ -1,0 +1,23 @@
+# create function
+def categorize_sales(sales, dates):
+    # inialize empty dictionary
+        categories = {}
+    for i in range(len(sales)):
+        amount = sales[i] # use to determine dictionary value
+        date = dates[i] # use for dictionary key
+        
+        # determine category value
+        if amount < 2000:
+            categories[date] = 'low'
+        elif amount < 6000:
+            categories[date] = 'medium'
+        else:
+            categories[date] = 'high'
+    
+        return categories
+
+sales = [9412, 1778, 2987, 2512, 3999, 7655, 11003]
+dates = ['2022-10-02', '2022-10-03', '2022-10-04', '2022-10-05', '2022-10-06', '2022-10-07', '2022-10-08']
+
+weekly_sales = categorize_sales(sales, dates)
+print(weekly_sales)

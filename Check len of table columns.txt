@@ -1,0 +1,16 @@
+#Check for length of columns in table
+# create print_table_info() function here
+def print_table_info(table):
+    for column, values in table.items():
+        print(f"Number of rows in {column} column: {len(values)}")
+
+# use movie_data, which already exists in the namespace
+print_table_info(movie_data)
+
+
+#Check for missing values
+def count_missing_values(table):
+    missing_counts = {}
+    for column, values in table.items():
+        missing_counts[column] = values.count('')
+    return missing_counts

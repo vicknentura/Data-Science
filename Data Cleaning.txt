@@ -1,0 +1,162 @@
+# Categorize function
+def categorize_sales(sales, dates):
+    # inialize empty dictionary
+        categories = {}
+    for i in range(len(sales)):
+        amount = sales[i] # use to determine dictionary value
+        date = dates[i] # use for dictionary key
+        
+        # determine category value
+        if amount < 2000:
+            categories[date] = 'low'
+        elif amount < 6000:
+            categories[date] = 'medium'
+        else:
+            categories[date] = 'high'
+    
+        return categories
+
+sales = [9412, 1778, 2987, 2512, 3999, 7655, 11003]
+dates = ['2022-10-02', '2022-10-03', '2022-10-04', '2022-10-05', '2022-10-06', '2022-10-07', '2022-10-08']
+
+weekly_sales = categorize_sales(sales, dates)
+print(weekly_sales)
+
+
+#Check for length of columns in table
+# create print_table_info() function here
+def print_table_info(table):
+    for column, values in table.items():
+        print(f"Number of rows in {column} column: {len(values)}")
+
+# use movie_data, which already exists in the namespace
+print_table_info(movie_data)
+
+
+#Check for missing values
+def count_missing_values(table):
+    missing_counts = {}
+    for column, values in table.items():
+        missing_counts[column] = values.count('')
+    return missing_counts
+
+
+#Clean headers
+columns = ['   name',
+           'Character',
+           'r0le',
+           'TITLE',
+           '  Type',
+           'release Year',
+           'genres',
+           'imdb sc0re',
+           'imdb v0tes']
+
+def clean_headers(headers):
+    cleaned_headers = []
+    for header in headers:
+        cleaned_header = header.strip().lower()
+        cleaned_header = cleaned_header.replace(' ', '_')
+        cleaned_header = cleaned_header.replace('0', 'o')
+        cleaned_headers.append(cleaned_header)
+    return cleaned_headers
+
+print(clean_headers(columns))
+
+
+#
+# create print_table_info() function here
+def print_table_info(table):
+    for column, values in table.items():
+        print(f"Number of rows in {column} column: {len(values)}")
+
+# use movie_data, which already exists in the namespace
+print_table_info(movie_data)
+
+
+#
+# create count_missing_values() function here
+
+def count_missing_values(table):
+    missing_counts = {}
+    for column, values in table.items():
+        missing_counts[column] = values.count('')
+    return missing_counts
+    
+# use movie_data, which already exists in the namespace
+print(count_missing_values(movie_data))
+
+
+#
+# create fill_missng_values() function here
+
+def fill_missing_values(d):
+    """
+    Replace any instance of '' in the dictionary list values with 'unknown'.
+    """
+    filled_dict = {}
+    for key, value in d.items():
+        new_value = []
+        for val in value:
+            if isinstance(val, str) and val == '':
+                new_value.append('unknown')
+            else:
+                new_value.append(val)
+        filled_dict[key] = new_value
+    return filled_dict
+
+# use movie_data, which already exists in the namespace
+movie_data = fill_missing_values(movie_data)
+print(count_missing_values(movie_data))
+
+
+#
+types = list(set(movie_data['type']))
+print("Unique type values:", types, '\n')
+
+
+def separate_types(type_list):
+    """
+    Separate the types into two lists: one for shows and one for movies.
+    """
+    show_types = [item.lower() for item in type_list if 'show' in item.lower() or 'tv' in item.lower()]
+    movie_types = [item.lower() for item in type_list if 'movie' in item.lower()]
+
+    return show_types, movie_types
+
+type_list = set(['the movie', 'tv show', 'SHOW', 'tv series', 'MOVIE', 'tv', 'shows', 'tv shows', 'movies'])
+show_types, movie_types = separate_types(list(type_list))
+
+
+print(f"Processed show types: {show_types}")
+print(f"Processed movie types: {movie_types}")
+
+
+#
+types = list(set(movie_data['type']))
+show_types, movie_types = separate_types(types)
+
+def clean_types(column, show_types, movie_types):
+    """
+    Clean the type column by replacing all show types with 'show' and all movie types with 'movie'.
+    """
+    processed_types = []
+    for item in column:
+        item = item.lower()
+        if item in show_types:
+            processed_types.append('show')
+        elif item in movie_types:
+            processed_types.append('movie')
+        else:
+            processed_types.append(item)
+
+    return processed_types
+
+processed_types = clean_types(movie_data['type'], show_types, movie_types)
+movie_data['type'] = processed_types
+
+print("Unique type values after cleaning:")
+print(set(movie_data['type']))
+
+print("Unique type values after cleaning:")
+print(list(set(movie_data['type'])))

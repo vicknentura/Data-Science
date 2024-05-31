@@ -1,0 +1,105 @@
+#Creating a dataframe
+import pandas as pd
+
+music = [
+    ['Bob Dylan', 'Like A Rolling Stone'],
+    ['John Lennon', 'Imagine'],
+    ['The Beatles', 'Hey Jude'],
+    ['Nirvana', 'Smells Like Teen Spirit'],
+]
+
+entries = ['artist', 'track']
+
+# write your code here
+playlist = pd.DataFrame(music, columns=entries)
+print(playlist)
+
+
+#Initialization from desktop
+import pandas as pd
+
+file_path = '/Users/your_username/Desktop/music_log.csv'
+df = pd.read_csv(file_path)
+
+
+#Initialization from cloud-based location
+import pandas as pd
+from google.colab import drive
+
+drive.mount('/content/drive')
+file_path = '/content/drive/My Drive/music_log.csv'
+df = pd.read_csv(file_path)
+
+
+#Initialization from an external database with an API key
+import requests
+import pandas as pd
+
+
+# Set the API endpoint URL and the API key
+url = 'https://api.example.com/data'
+headers = {'Authorization': 'Bearer your_api_key'}
+
+# Make a GET request to the API endpoint
+response = requests.get(url, headers=headers)
+
+# Check if the request was successful
+if response.status_code == 200:
+    # Parse the JSON response into a Python dictionary
+    data = response.json()
+
+    # Convert the dictionary to a pandas DataFrame
+    df = pd.DataFrame(data)
+
+    # Print the DataFrame
+    print(df)
+else:
+    print(f'Request failed with status code {response.status_code}')
+
+
+#Indexing by coordinates
+import pandas as pd
+
+df = pd.read_csv('/datasets/music_log.csv')
+
+result = df.loc[4, 'genre']
+print(result)
+
+
+#Looking for duplicates
+import pandas as pd
+df = pd.read_csv('/datasets/music_log.csv')
+
+# extracting first five rows of df
+first_5_rows = df[0:5]
+print(first_5_rows)
+
+print()
+
+# producing series with use of duplicated()
+duplicates = first_5_rows.duplicated()
+print(duplicates)
+
+
+#Sorting by a single column
+import pandas as pd
+exoplanet = pd.read_csv("/datasets/exoplanets.csv")
+
+# sorting DataFrame by 'radius' column in ascending order
+print(exoplanet.sort_values(by='radius').head(10))
+
+
+#count, unique, mode, mode frequency
+import pandas as pd
+df = pd.read_csv('/datasets/music_log_upd_en.csv')
+df_drop_skip = df[df['total_play_seconds'] > 30]
+
+print(df_drop_skip['genre_name'].describe())
+
+
+#Fill a data field with a keyword instead of NaN
+cities_df['city'] = cities_df['city'].fillna('City Unknown')
+
+
+# obtaining general information about the data in df
+df.info()
