@@ -1,0 +1,29 @@
+The files you need to deploy an app on Binder depend on the type of app you're deploying:
+
+**For a Streamlit App:**
+
+1. **Your Streamlit Script:**  This is the main Python file containing your Streamlit code (e.g., `main.py`, `app.py`).
+2. **Optional: requirements.txt:**  This file lists all the Python libraries your app needs to run. Binder will install these libraries automatically during the build process. 
+
+**For a Voila App:**
+
+1. **Your Jupyter Notebook:** This is the notebook containing your code and visualizations (e.g., `my_notebook.ipynb`).
+2. **Optional: requirements.txt:**  Similar to Streamlit apps.
+
+**Additionally:**
+
+* **Optional: README.md:** This file provides instructions and context about your app.
+
+**Important Note:**
+
+While Binder can directly launch Jupyter notebooks, deploying a Streamlit app requires a slightly different approach. Here are two common methods:
+
+1. **Using a custom launch script:** You can create a script (e.g., `.binder/postBuild`) that launches your Streamlit app using the `streamlit run` command. 
+
+2. **Using a dedicated repository:** Some community repositories showcase how to configure Binder for Streamlit apps. You can fork these repositories and customize them for your specific needs (e.g., [https://discourse.jupyter.org/t/streamlit-app-and-binder/9487](https://discourse.jupyter.org/t/streamlit-app-and-binder/9487) by chekos).
+
+**In summary:**
+
+* The core file depends on your app type (Streamlit script or Jupyter notebook).
+* A `requirements.txt` file is helpful for listing dependencies.
+* Readme and custom launch scripts might be necessary depending on your chosen deployment method. 
