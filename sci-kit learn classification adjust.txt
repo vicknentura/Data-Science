@@ -1,0 +1,145 @@
+sci-kit learn classification adjustments
+
+#Class Probability for LogRes
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+
+data = pd.read_csv('/datasets/travel_insurance_us_preprocessed.csv')
+
+target = data['Claim']
+features = data.drop('Claim', axis=1)
+features_train, features_valid, target_train, target_valid = train_test_split(
+    features, target, test_size=0.25, random_state=12345
+)
+
+model = LogisticRegression(random_state=12345, solver='liblinear')
+model.fit(features_train, target_train)
+
+probabilities_valid = model.predict_proba(features_valid)
+probabilities_one_valid = probabilities_valid[:, 1]
+
+print(probabilities_one_valid[:5])
+
+
+#Threshold adjustments for LogRes
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import precision_score, recall_score
+
+data = pd.read_csv('/datasets/travel_insurance_us_preprocessed.csv')
+
+target = data['Claim']
+features = data.drop('Claim', axis=1)
+features_train, features_valid, target_train, target_valid = train_test_split(
+    features, target, test_size=0.25, random_state=12345
+)
+
+model = LogisticRegression(random_state=12345, solver='liblinear')
+model.fit(features_train, target_train)
+probabilities_valid = model.predict_proba(features_valid)
+probabilities_one_valid = probabilities_valid[:, 1]
+
+for threshold in np.arange(0, 0.3, 0.02):
+    predicted_valid = probabilities_one_valid > threshold
+    precision = precision_score(target_valid, predicted_valid)
+    recall = recall_score(target_valid, predicted_valid)
+    print(
+        'Threshold = {:.2f} | Precision = {:.3f}, Recall = {:.3f}'.format(
+            threshold, precision, recall
+        )
+    )
+
+
+#Precision Recall Curve for LogRes
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_recall_curve
+from sklearn.linear_model import LogisticRegression
+
+data = pd.read_csv('/datasets/travel_insurance_us_preprocessed.csv')
+
+target = data['Claim']
+features = data.drop('Claim', axis=1)
+features_train, features_valid, target_train, target_valid = train_test_split(
+    features, target, test_size=0.25, random_state=12345
+)
+
+model = LogisticRegression(random_state=12345, solver='liblinear')
+model.fit(features_train, target_train)
+
+probabilities_valid = model.predict_proba(features_valid)
+precision, recall, thresholds = precision_recall_curve(
+    target_valid, probabilities_valid[:, 1]
+)
+
+plt.figure(figsize=(6, 6))
+plt.step(recall, precision, where='post')
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.ylim([0.0, 1.05])
+plt.xlim([0.0, 1.0])
+plt.title('Precision-Recall Curve')
+plt.show()
+
+
+#ROC Curve for LogRes
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_curve
+
+data = pd.read_csv('/datasets/travel_insurance_us_preprocessed.csv')
+
+target = data['Claim']
+features = data.drop('Claim', axis=1)
+features_train, features_valid, target_train, target_valid = train_test_split(
+    features, target, test_size=0.25, random_state=12345
+)
+
+model = LogisticRegression(random_state=12345, solver='liblinear')
+model.fit(features_train, target_train)
+
+probabilities_valid = model.predict_proba(features_valid)
+probabilities_one_valid = probabilities_valid[:, 1]
+fpr, tpr, thresholds = roc_curve(target_valid, probabilities_one_valid)
+
+plt.figure()
+plt.plot(fpr, tpr)
+plt.plot([0, 1], [0, 1], linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.0])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC curve')
+plt.show()
+
+
+
+#AUC-ROC for LogRes
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+from sklearn.linear_model import LogisticRegression
+
+data = pd.read_csv('/datasets/travel_insurance_us_preprocessed.csv')
+
+target = data['Claim']
+features = data.drop('Claim', axis=1)
+features_train, features_valid, target_train, target_valid = train_test_split(
+    features, target, test_size=0.25, random_state=12345
+)
+
+model = LogisticRegression(random_state=12345, solver='liblinear')
+model.fit(features_train, target_train)
+
+probabilities_valid = model.predict_proba(features_valid)
+probabilities_one_valid = probabilities_valid[:, 1]
+auc_roc = roc_auc_score(target_valid, probabilities_one_valid)
+
+print(auc_roc)

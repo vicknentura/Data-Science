@@ -1,0 +1,205 @@
+### Parameters 1 (Accuracy)
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+
+threshold = 100000
+df.loc[df['last_price'] > threshold, 'price_class'] = 1
+df.loc[df['last_price'] <= threshold, 'price_class'] = 0
+
+features = df.drop(['last_price', 'price_class'], axis=1)
+target = df['price_class']
+
+model = DecisionTreeClassifier(random_state=12345)
+
+model.fit(features, target)
+
+test_df = pd.read_csv('/datasets/test_data_us.csv')
+
+test_df.loc[test_df['last_price'] > threshold, 'price_class'] = 1
+test_df.loc[test_df['last_price'] <= threshold, 'price_class'] = 0
+
+test_features = test_df.drop(['last_price', 'price_class'], axis=1)
+test_target = test_df['price_class']
+test_predictions = model.predict(test_features)
+
+
+def error_count(answers, predictions):
+    count = 0
+    for i in range(len(answers)):
+        if answers[i] != predictions[i]:
+            count += 1
+    return count
+
+def accuracy(answers, predictions):
+    correct = 0
+    for i in range(len(answers)):
+        if answers[i] == predictions[i]:
+            correct += 1
+    return correct / len(answers)
+    
+print('Accuracy:', accuracy(test_target, test_predictions))
+
+
+
+### Parameters 2 (Accuracy and Training/Test)
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+
+df.loc[df['last_price'] > 113000, 'price_class'] = 1
+df.loc[df['last_price'] <= 113000, 'price_class'] = 0
+
+features = df.drop(['last_price', 'price_class'], axis=1)
+target = df['price_class']
+
+model = DecisionTreeClassifier(random_state=12345)
+
+model.fit(features, target)
+
+test_df = pd.read_csv('/datasets/test_data_us.csv')
+
+test_df.loc[test_df['last_price'] > 113000, 'price_class'] = 1
+test_df.loc[test_df['last_price'] <= 113000, 'price_class'] = 0
+
+test_features = test_df.drop(['last_price', 'price_class'], axis=1)
+test_target = test_df['price_class']
+
+train_predictions = model.predict(features)
+test_predictions = model.predict(test_features)
+
+print('Accuracy')
+print('Training set:', accuracy_score(target, train_predictions))
+print('Test set:', accuracy_score(test_target, test_predictions))
+
+
+
+### Parameters 3 (Splitting he data into two sets, Training vs. Validation)
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+df.loc[df['last_price'] > 113000, 'price_class'] = 1
+df.loc[df['last_price'] <= 113000, 'price_class'] = 0
+
+df_train, df_valid = train_test_split(df, test_size=0.25, random_state=12345)
+
+features_train = df_train.drop(['last_price', 'price_class'], axis=1)
+target_train = df_train['price_class']
+features_valid = df_valid.drop(['last_price', 'price_class'], axis=1)
+target_valid = df_valid['price_class']
+
+print(features_train.shape)
+print(target_train.shape)
+print(features_valid.shape)
+print(target_valid.shape)
+
+
+
+### Decision Tree Classifier & Hyperparameters (Classification)
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+df.loc[df['last_price'] > 113000, 'price_class'] = 1
+df.loc[df['last_price'] <= 113000, 'price_class'] = 0
+
+df_train, df_valid = train_test_split(df, test_size=0.25, random_state=12345)
+
+features_train = df_train.drop(['last_price', 'price_class'], axis=1)
+target_train = df_train['price_class']
+features_valid = df_valid.drop(['last_price', 'price_class'], axis=1)
+target_valid = df_valid['price_class']
+
+# < create a loop for max_depth from 1 to 5 >
+for depth in range(1,6):
+    model = DecisionTreeClassifier(max_depth=depth, random_state=12345)
+    model.fit(features_train, target_train)
+    predictions_valid = model.predict(features_valid)
+    print('max_depth =', depth, ': ', end='')
+    print(accuracy_score(target_valid, predictions_valid))
+
+
+
+### Random Forest (Classification)
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+
+df.loc[df['last_price'] > 113000, 'price_class'] = 1
+df.loc[df['last_price'] <= 113000, 'price_class'] = 0
+
+df_train, df_valid = train_test_split(df, test_size = 0.25, random_state = 54321) # split 25% of data to make validation set
+
+features_train = df_train.drop(['last_price', 'price_class'], axis = 1)
+target_train = df_train['price_class']
+features_valid = df_valid.drop(['last_price', 'price_class'], axis = 1)
+target_valid = df_valid['price_class']
+
+best_score = 0
+best_est = 0
+for est in range(1, 10): # choose hyperparameter range
+    model = RandomForestClassifier(random_state = 54321, n_estimators = est) # set number of trees
+    model.fit(features_train, target_train) # train model on training set
+    score = model.score(features_valid, target_valid) # calculate accuracy score on validation set
+    if score > best_score:
+        best_score = score # save best accuracy score on validation set
+        best_est = est # save number of estimators corresponding to best accuracy score
+
+print("Accuracy of the best model on the validation set (n_estimators = {}): {}".format(best_est, best_score))
+
+final_model = RandomForestClassifier(random_state=54321, n_estimators=best_est) # change n_estimators to get best model
+final_model.fit(features_train, target_train)
+
+
+
+
+### Logistic Regression (Regression)
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+
+df = pd.read_csv("/datasets/train_data_us.csv")
+
+df.loc[df["last_price"] > 113000, "price_class"] = 1
+df.loc[df["last_price"] <= 113000, "price_class"] = 0
+
+df_train, df_valid = train_test_split(
+    df, 
+    test_size = 0.25, # split 25% of data to make validation set
+    random_state = 54321
+)  
+
+features_train = df_train.drop(
+    ["last_price", "price_class"], axis = 1
+)
+target_train = df_train["price_class"]
+features_valid = df_valid.drop(
+    ["last_price", "price_class"], axis = 1
+)
+target_valid = df_valid["price_class"]
+
+model =  LogisticRegression(random_state = 54321, solver = 'liblinear') # initialize logistic regression constructor with parameters random_state=54321 and solver='liblinear'
+model.fit(features_train, target_train)  # train model on training set
+score_train = model.score(
+    features_train, target_train # calculate accuracy score on training set
+)  
+score_valid = model.score(
+    features_valid, target_valid # calculate accuracy score on validation set
+)  
+
+print(
+    "Accuracy of the logistic regression model on the training set:",
+    score_train,
+)
+print(
+    "Accuracy of the logistic regression model on the validation set:",
+    score_valid,
+)

@@ -1,0 +1,124 @@
+#Prep for training and weightage experiments
+from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.class_weight import compute_class_weight
+
+#Address Categorical Variables
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder
+
+# Define models (replace with your choices)
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier
+from sklearn.svm import SVC, NuSVC, LinearSVC
+from sklearn.neural_network import MLPClassifier
+import catboost
+from xgboost import XGBClassifier
+
+#Bring in metrics
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve
+
+
+
+
+# Define feature columns and target variable
+feature_cols = ['Surname', 'CreditScore', 'Geography', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary', 'Exited']  # list of feature columns
+target_col = 'Gender'
+
+X = creditusers_churn[feature_cols]
+
+
+# Identify categorical columns
+categorical_cols = ['Surname', 'Geography', 'Gender']
+
+
+# Apply One-Hot Encoding to categorical columns
+ohe_cols = pd.get_dummies(creditusers_churn[categorical_cols], drop_first=True)
+
+
+# Concatenate OHE columns with numerical columns
+X = pd.concat([creditusers_churn[feature_cols], ohe_cols], axis=1)
+
+y = creditusers_churn['Gender']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+
+# Define balancing scenarios
+balancing_scenarios = [
+    'imbalanced',  # no balancing
+    'oversampling',
+    'undersampling',
+    'class_weighting'
+]
+
+
+# Define models
+models = [
+    DecisionTreeClassifier,
+    RandomForestClassifier(n_estimators=100),
+    LogisticRegression(max_iter=1000),
+    KNeighborsClassifier,
+    RadiusNeighborsClassifier,
+    SVC(kernel='linear'),
+    NuSVC,
+    LinearSVC,
+    MLPClassifier,
+    catboost.CatBoostClassifier,
+    XGBClassifier
+]
+
+
+
+# Define preprocessing pipeline
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, feature_cols),
+        ('cat', categorical_transformer, categorical_cols)])
+
+
+
+
+# Function to train, evaluate, and store results
+def train_evaluate_model(model, X_train, X_val, y_train, y_val, balancing_scenario):
+    if balancing_scenario == 'oversampling':
+        # Oversample minority class
+        from imblearn.over_sampling import RandomOverSampler
+        ros = RandomOverSampler(random_state=42)
+        X_train, y_train = ros.fit_resample(X_train, y_train)
+    elif balancing_scenario == 'undersampling':
+        # Undersample majority class
+        from imblearn.under_sampling import RandomUnderSampler
+        rus = RandomUnderSampler(random_state=42)
+        X_train, y_train = rus.fit_resample(X_train, y_train)
+    elif balancing_scenario == 'class_weighting':
+        # Compute class weights
+        class_weights = compute_class_weight('balanced', np.unique(y_train), y_train)
+        model.set_params(class_weight='auto')
+
+
+
+
+# Train and evaluate models for each balancing scenario
+results = []
+for balancing_scenario in balancing_scenarios:
+    for model in models:
+        X_train_balanced, X_val_balanced, y_train_balanced, y_val_balanced = train_test_split(X_train, y_train, test_size=0.2, random_state=42, stratify=y_train)
+        model, f1, auc = train_evaluate_model(model, X_train_balanced, X_val_balanced, y_train_balanced, y_val_balanced, balancing_scenario)
+        results.append((balancing_scenario, model.__class__.__name__, f1, auc))
+
+# Print results
+print("Balancing Scenario\tModel\tF1-score\tAUC")
+for result in results:
+    print(f"{result[0]}\t{result[1]}\t{result[2]:.3f}\t{result[3]:.3f}")

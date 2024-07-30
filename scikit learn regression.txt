@@ -1,0 +1,183 @@
+scikit learn regression
+
+### Mean Square Error Function
+def mse(answers, predictions):
+    total = 0
+    for i in range(len(answers)):
+        total += (answers[i] - predictions[i]) ** 2
+    result = total / len(answers)
+    return result
+
+
+answers = [623, 253, 150, 237]
+predictions = [649, 253, 370, 148]
+
+print(mse(answers, predictions))
+
+## Built-in Function for MSE
+from sklearn.metrics import mean_squared_error
+
+y_true =...  # true values
+y_pred =...  # predicted values
+
+mse = mean_squared_error(y_true, y_pred)
+
+## Built-in Function for MAE
+from sklearn.metrics import mean_absolute_error
+
+y_true =...  # true values
+y_pred =...  # predicted values
+
+mae = mean_absolute_error(y_true, y_pred)
+
+## Built-in Function for MASE
+def mean_absolute_scaled_error(y_true, y_pred, y_train):
+    mae = mean_absolute_error(y_true, y_pred)
+    mae_train = mean_absolute_error(y_train, y_train.mean())
+    return mae / mae_train
+
+y_true =...  # true values
+y_pred =...  # predicted values
+y_train =...  # training values
+
+mase = mean_absolute_scaled_error(y_true, y_pred, y_train)
+
+## Built-in Function for FB
+from sklearn.metrics import fbeta_score
+
+y_true =...  # true values
+y_pred =...  # predicted values
+beta =...  # beta value (e.g., 1 for F1-score)
+
+fb = fbeta_score(y_true, y_pred, beta=beta)
+
+
+
+### MSE Interpretation via comparison with average
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+
+features = df.drop(['last_price'], axis=1)
+target = df['last_price']
+
+print('Average price:', target.mean())
+
+
+features = df.drop(['last_price'], axis=1)
+target = df['last_price'] / 100000
+
+predictions = pd.Series(target.mean(), index=target.index)
+
+# < calculate MSE >
+mse = mean_squared_error(target, predictions)
+
+print('MSE:', mse)
+
+
+
+### Decision Tree Regression
+import pandas as pd
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+
+features = df.drop(['last_price'], axis=1)
+target = df['last_price'] / 1000000
+
+features_train, features_valid, target_train, target_valid = train_test_split(
+    features, target, test_size=0.25, random_state=12345) # split 25% of data to make validation set
+
+best_model = None
+best_result = 10000
+best_depth = 0
+for depth in range(1, 6): # choose hyperparameter range
+    model = DecisionTreeRegressor(max_depth=depth, random_state=12345) # initialize model constructor with parameters random_state=12345 and max_depth=depth
+    model.fit(features_train, target_train) # train model on training set
+    predictions_valid = model.predict(features_valid) # get model predictions on validation set
+    result = mean_squared_error(target_valid, predictions_valid)**0.5 # calculate RMSE on validation set
+    if result < best_result:
+        best_model = model
+        best_result = result
+        best_depth = depth
+
+print(f"RMSE of the best model on the validation set (max_depth = {best_depth}): {best_result}")
+
+
+
+
+### Random Forest Regression
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor	
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+
+features = df.drop(['last_price'], axis=1)
+target = df['last_price'] / 1000000
+
+features_train, features_valid, target_train, target_valid = train_test_split(
+    features, target, test_size=0.25, random_state=12345) 
+
+best_model = None
+best_result = 10000
+best_est = 0
+best_depth = 0
+for est in range(10, 51, 10):
+    for depth in range (1, 11):
+        model = RandomForestRegressor(random_state=12345, n_estimators=est, max_depth=depth)
+        model.fit(features_train, target_train)
+        predictions_valid = model.predict(features_valid)
+        result = mean_squared_error(target_valid, predictions_valid)**0.5
+        if result < best_result:
+            best_model = model
+            best_result = result
+            best_est = est
+            best_depth = depth
+
+print("RMSE of the best model on the validation set:", best_result, "n_estimators:", best_est, "best_depth:", depth)
+
+
+
+### Linear Regression
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+
+features = df.drop(['last_price'], axis = 1) # extract the features
+target = df['last_price']/1000000 # extract the target
+
+features_train, features_valid, target_train, target_valid = train_test_split(
+    features, target, test_size = 0.25, random_state = 12345) # split 25% of data to make validation set
+
+model = LinearRegression() # initialize model constructor
+model.fit(features_train, target_train) # train model on training set
+predictions_valid = model.predict(features_valid) # get model predictions on validation set
+
+result = np.sqrt(mean_squared_error(target_valid, predictions_valid))# calculate RMSE on validation set
+print("RMSE of the linear regression model on the validation set:", result)
+
+
+
+###
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
+
+df = pd.read_csv('/datasets/train_data_us.csv')
+
+features = df.drop(['last_price'], axis=1)
+target = df['last_price'] / 100000
+
+final_model = RandomForestRegressor(random_state=12345, n_estimators=40)
+final_model.fit(features, target)
+
+print("\nRMSE of the final model on the training set:", mean_squared_error(target, final_model.predict(features), squared=False))
