@@ -1,0 +1,57 @@
+pip install requests
+
+import requests
+import os
+
+# Function to download content from a URL
+def download_url(url, filename, destination_folder):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check for request errors
+
+        # Create the full file path
+        file_path = os.path.join(destination_folder, filename)
+
+        # Write content to the file
+        with open(file_path, 'wb') as file:
+            file.write(response.content)
+
+        print(f"Downloaded: {url} as {filename}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to download {url}: {e}")
+
+# Main function to read URLs and download them
+def main():
+    # Path to the text files
+    urls_file_path = 'urls.txt'  # Change this to your URLs file path
+    names_file_path = 'names.txt'  # Change this to your names file path
+    # Destination folder on your desktop
+    destination_folder = os.path.join(os.path.expanduser('~'), 'Desktop', 'DownloadedFiles')
+
+    # Create destination folder if it doesn't exist
+    os.makedirs(destination_folder, exist_ok=True)
+
+    # Read URLs from the text file
+    with open(urls_file_path, 'r') as urls_file:
+        urls = urls_file.readlines()
+
+    # Read names from the second text file
+    with open(names_file_path, 'r') as names_file:
+        names = names_file.readlines()
+
+    # Ensure the number of URLs and names match
+    if len(urls) != len(names):
+        print("Error: The number of URLs and names must match.")
+        return
+
+    # Download each URL using the corresponding name
+    for url, name in zip(urls, names):
+        url = url.strip()  # Remove any leading/trailing whitespace
+        name = name.strip()  # Remove any leading/trailing whitespace
+        if url and name:  # Check if neither is empty
+            # Use the name as the filename, adding a suitable extension if necessary
+            filename = f"{name}.html"  # You can change the extension based on content type
+            download_url(url, filename, destination_folder)
+
+if __name__ == "__main__":
+    main()
