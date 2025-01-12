@@ -1,0 +1,212 @@
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import RidgeCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_squared_error
+import statsmodels.api as sm
+from scipy import stats
+import warnings
+warnings.filterwarnings('ignore')
+
+class MarketingMixModel:
+    def __init__(self, adstock_rates=None, saturation_rates=None):
+        """
+        Initialize Marketing Mix Model with transformation parameters
+        
+        Parameters:
+        adstock_rates (dict): Dictionary of decay rates for each channel
+        saturation_rates (dict): Dictionary of saturation coefficients
+        """
+        self.adstock_rates = adstock_rates or {}
+        self.saturation_rates = saturation_rates or {}
+        self.model = None
+        self.scaler = StandardScaler()
+        self.channel_effects = None
+        self.summary = None
+        
+    def apply_adstock(self, series, decay_rate):
+        """
+        Apply adstock transformation to account for lagged effects
+        
+        Parameters:
+        series (pd.Series): Original marketing spend data
+        decay_rate (float): Rate at which marketing effect decays
+        """
+        result = [series.iloc[0]]
+        for i in range(1, len(series)):
+            result.append(series.iloc[i] + decay_rate * result[-1])
+        return pd.Series(result, index=series.index)
+    
+    def apply_saturation(self, series, k):
+        """
+        Apply diminishing returns transformation
+        
+        Parameters:
+        series (pd.Series): Adstocked marketing data
+        k (float): Saturation coefficient
+        """
+        return 1 - np.exp(-k * series)
+    
+    def transform_features(self, X):
+        """
+        Apply adstock and saturation transformations to features
+        
+        Parameters:
+        X (pd.DataFrame): Marketing spend data by channel
+        """
+        X_transformed = X.copy()
+        
+        for column in X.columns:
+            # Apply adstock if rate specified
+            if column in self.adstock_rates:
+                X_transformed[column] = self.apply_adstock(
+                    X[column], 
+                    self.adstock_rates[column]
+                )
+            
+            # Apply saturation if rate specified
+            if column in self.saturation_rates:
+                X_transformed[column] = self.apply_saturation(
+                    X_transformed[column], 
+                    self.saturation_rates[column]
+                )
+        
+        return X_transformed
+    
+    def fit(self, X, y, include_seasonality=True):
+        """
+        Fit the marketing mix model
+        
+        Parameters:
+        X (pd.DataFrame): Marketing spend data by channel
+        y (pd.Series): Sales or conversion data
+        include_seasonality (bool): Whether to include seasonal effects
+        """
+        # Transform features
+        X_transformed = self.transform_features(X)
+        
+        # Add seasonality if requested
+        if include_seasonality:
+            X_transformed['month'] = X_transformed.index.month
+            month_dummies = pd.get_dummies(X_transformed['month'], prefix='month')
+            X_transformed = pd.concat([X_transformed, month_dummies], axis=1)
+            X_transformed.drop('month', axis=1, inplace=True)
+        
+        # Scale features
+        X_scaled = self.scaler.fit_transform(X_transformed)
+        X_scaled = sm.add_constant(X_scaled)
+        
+        # Fit model
+        self.model = sm.OLS(y, X_scaled).fit()
+        self.summary = self.model.summary()
+        
+        # Calculate channel effects
+        self.channel_effects = pd.DataFrame({
+            'coefficient': self.model.params[1:],
+            'p_value': self.model.pvalues[1:],
+            'std_error': self.model.bse[1:]
+        })
+        
+        return self
+    
+    def predict(self, X):
+        """
+        Make predictions with the fitted model
+        
+        Parameters:
+        X (pd.DataFrame): Marketing spend data by channel
+        """
+        X_transformed = self.transform_features(X)
+        X_scaled = self.scaler.transform(X_transformed)
+        X_scaled = sm.add_constant(X_scaled)
+        return self.model.predict(X_scaled)
+    
+    def calculate_roi(self, X, y):
+        """
+        Calculate ROI for each marketing channel
+        
+        Parameters:
+        X (pd.DataFrame): Marketing spend data by channel
+        y (pd.Series): Sales or conversion data
+        """
+        predictions = self.predict(X)
+        
+        roi_metrics = {}
+        for channel in X.columns:
+            # Create counterfactual with channel spend set to 0
+            X_counterfactual = X.copy()
+            X_counterfactual[channel] = 0
+            predictions_counterfactual = self.predict(X_counterfactual)
+            
+            # Calculate incremental effect
+            incremental_effect = predictions - predictions_counterfactual
+            
+            # Calculate ROI
+            total_spend = X[channel].sum()
+            total_incremental = incremental_effect.sum()
+            roi = total_incremental / total_spend if total_spend > 0 else 0
+            
+            roi_metrics[channel] = {
+                'total_spend': total_spend,
+                'total_incremental': total_incremental,
+                'roi': roi
+            }
+        
+        return pd.DataFrame(roi_metrics).T
+
+# Example usage
+def generate_sample_data(periods=365):
+    """Generate sample marketing and sales data"""
+    np.random.seed(42)
+    date_rng = pd.date_range(start='2023-01-01', periods=periods, freq='D')
+    
+    # Generate marketing spend data
+    data = {
+        'tv_spend': np.random.normal(1000, 200, periods),
+        'social_spend': np.random.normal(500, 100, periods),
+        'search_spend': np.random.normal(300, 50, periods),
+        'email_spend': np.random.normal(200, 30, periods)
+    }
+    
+    X = pd.DataFrame(data, index=date_rng)
+    
+    # Generate sales with realistic effects
+    base_sales = 5000
+    tv_effect = 2.5 * X['tv_spend']
+    social_effect = 1.8 * X['social_spend']
+    search_effect = 3.0 * X['search_spend']
+    email_effect = 1.2 * X['email_spend']
+    
+    # Add seasonality and noise
+    seasonality = 1000 * np.sin(np.pi * date_rng.dayofyear / 182.5)
+    noise = np.random.normal(0, 500, periods)
+    
+    y = (base_sales + tv_effect + social_effect + search_effect + 
+         email_effect + seasonality + noise)
+    
+    return X, pd.Series(y, index=date_rng)
+
+# Generate sample data
+X, y = generate_sample_data()
+
+# Initialize and fit the model
+mmm = MarketingMixModel(
+    adstock_rates={
+        'tv_spend': 0.7,
+        'social_spend': 0.5,
+        'search_spend': 0.3,
+        'email_spend': 0.4
+    },
+    saturation_rates={
+        'tv_spend': 0.0001,
+        'social_spend': 0.0002,
+        'search_spend': 0.0003,
+        'email_spend': 0.0004
+    }
+)
+
+# Fit the model
+mmm.fit(X, y)
+
+# Calculate ROI
+roi_metrics = mmm.calculate_roi(X, y)
