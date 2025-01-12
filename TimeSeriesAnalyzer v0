@@ -1,0 +1,248 @@
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.arima.model import ARIMA
+from prophet import Prophet
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+import warnings
+warnings.filterwarnings('ignore')
+
+class TimeSeriesAnalyzer:
+    """Base class for time series analysis and preprocessing"""
+    
+    def __init__(self, data, date_column, value_column):
+        """
+        Initialize with time series data
+        
+        Parameters:
+        data (pd.DataFrame): DataFrame containing the time series
+        date_column (str): Name of the datetime column
+        value_column (str): Name of the value column
+        """
+        self.raw_data = data.copy()
+        self.date_column = date_column
+        self.value_column = value_column
+        
+        # Ensure data is properly formatted
+        self.data = self._prepare_data()
+        
+    def _prepare_data(self):
+        """Convert data to time series format"""
+        df = self.raw_data.copy()
+        df[self.date_column] = pd.to_datetime(df[self.date_column])
+        df.set_index(self.date_column, inplace=True)
+        df.sort_index(inplace=True)
+        return df
+    
+    def check_stationarity(self, window=7):
+        """
+        Check if time series is stationary using Augmented Dickey-Fuller test
+        
+        Parameters:
+        window (int): Rolling window size for statistics
+        """
+        result = adfuller(self.data[self.value_column].dropna())
+        
+        stats = {
+            'ADF Statistic': result[0],
+            'p-value': result[1],
+            'Critical values': result[4]
+        }
+        
+        # Calculate rolling statistics
+        rolling_mean = self.data[self.value_column].rolling(window=window).mean()
+        rolling_std = self.data[self.value_column].rolling(window=window).std()
+        
+        return stats, rolling_mean, rolling_std
+    
+    def decompose(self, period=None):
+        """
+        Decompose time series into trend, seasonal, and residual components
+        
+        Parameters:
+        period (int): Period for seasonal decomposition
+        """
+        if period is None:
+            # Attempt to automatically detect period
+            if self.data.index.freq == 'M':
+                period = 12
+            elif self.data.index.freq == 'D':
+                period = 7
+            else:
+                period = 30
+        
+        decomposition = seasonal_decompose(
+            self.data[self.value_column],
+            period=period,
+            extrapolate_trend='freq'
+        )
+        
+        return decomposition
+
+class ARIMAForecaster:
+    """Class for ARIMA-based forecasting"""
+    
+    def __init__(self, data, order=(1,1,1)):
+        """
+        Initialize ARIMA forecaster
+        
+        Parameters:
+        data (pd.Series): Time series data
+        order (tuple): ARIMA order (p,d,q)
+        """
+        self.data = data
+        self.order = order
+        self.model = None
+        self.fitted = None
+        
+    def fit(self):
+        """Fit ARIMA model to data"""
+        self.model = ARIMA(self.data, order=self.order)
+        self.fitted = self.model.fit()
+        return self
+    
+    def forecast(self, steps):
+        """
+        Generate forecasts
+        
+        Parameters:
+        steps (int): Number of steps to forecast
+        """
+        forecast = self.fitted.forecast(steps=steps)
+        return forecast
+    
+    def get_confidence_intervals(self, steps, alpha=0.05):
+        """Get confidence intervals for forecast"""
+        forecast = self.fitted.get_forecast(steps=steps)
+        return forecast.conf_int(alpha=alpha)
+
+class ProphetForecaster:
+    """Class for Facebook Prophet-based forecasting"""
+    
+    def __init__(self, data, date_column, value_column, 
+                 yearly_seasonality=True, 
+                 weekly_seasonality=True,
+                 daily_seasonality=False):
+        """
+        Initialize Prophet forecaster
+        
+        Parameters:
+        data (pd.DataFrame): DataFrame with date and value columns
+        date_column (str): Name of date column
+        value_column (str): Name of value column
+        """
+        self.raw_data = data.copy()
+        self.date_column = date_column
+        self.value_column = value_column
+        self.model = Prophet(
+            yearly_seasonality=yearly_seasonality,
+            weekly_seasonality=weekly_seasonality,
+            daily_seasonality=daily_seasonality
+        )
+        self._prepare_data()
+        
+    def _prepare_data(self):
+        """Prepare data for Prophet"""
+        self.data = self.raw_data.rename(columns={
+            self.date_column: 'ds',
+            self.value_column: 'y'
+        })
+        
+    def fit(self):
+        """Fit Prophet model"""
+        self.model.fit(self.data)
+        return self
+    
+    def make_future_dataframe(self, periods, freq='D'):
+        """Create future dates for forecasting"""
+        return self.model.make_future_dataframe(periods=periods, freq=freq)
+    
+    def forecast(self, periods, freq='D'):
+        """Generate forecast"""
+        future = self.make_future_dataframe(periods=periods, freq=freq)
+        forecast = self.model.predict(future)
+        return forecast
+
+class TimeSeriesEvaluator:
+    """Class for evaluating time series forecasts"""
+    
+    @staticmethod
+    def calculate_metrics(actual, predicted):
+        """Calculate common evaluation metrics"""
+        metrics = {
+            'MAE': mean_absolute_error(actual, predicted),
+            'MSE': mean_squared_error(actual, predicted),
+            'RMSE': np.sqrt(mean_squared_error(actual, predicted)),
+            'MAPE': np.mean(np.abs((actual - predicted) / actual)) * 100
+        }
+        return metrics
+    
+    @staticmethod
+    def cross_validate_time_series(data, n_splits, forecaster):
+        """Perform time series cross-validation"""
+        errors = []
+        for i in range(n_splits):
+            train_size = len(data) - (n_splits - i)
+            train = data[:train_size]
+            test = data[train_size:train_size+1]
+            
+            # Fit and predict
+            forecaster.fit(train)
+            pred = forecaster.forecast(1)
+            
+            # Calculate error
+            error = mean_squared_error([test.values], [pred.values])
+            errors.append(error)
+            
+        return np.mean(errors), np.std(errors)
+
+# Example usage
+def generate_sample_data(periods=365):
+    """Generate sample time series data"""
+    date_rng = pd.date_range(start='2023-01-01', periods=periods, freq='D')
+    
+    # Generate synthetic time series with trend, seasonality, and noise
+    trend = np.linspace(0, 100, periods)
+    seasonality = 20 * np.sin(2 * np.pi * np.arange(periods) / 365)
+    noise = np.random.normal(0, 5, periods)
+    
+    values = trend + seasonality + noise
+    
+    df = pd.DataFrame({
+        'date': date_rng,
+        'value': values
+    })
+    
+    return df
+
+# Create sample data
+sample_data = generate_sample_data()
+
+# Initialize analyzer
+analyzer = TimeSeriesAnalyzer(sample_data, 'date', 'value')
+
+# Check stationarity
+stationarity_stats, rolling_mean, rolling_std = analyzer.check_stationarity()
+
+# Decompose series
+decomposition = analyzer.decompose()
+
+# Initialize and fit ARIMA forecaster
+arima = ARIMAForecaster(analyzer.data['value'])
+arima.fit()
+
+# Initialize and fit Prophet forecaster
+prophet = ProphetForecaster(sample_data, 'date', 'value')
+prophet.fit()
+
+# Make forecasts
+arima_forecast = arima.forecast(30)
+prophet_forecast = prophet.forecast(30)
+
+# Evaluate forecasts
+evaluator = TimeSeriesEvaluator()
+metrics = evaluator.calculate_metrics(
+    analyzer.data['value'][-30:],
+    arima_forecast[-30:]
+)
